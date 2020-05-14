@@ -11,6 +11,17 @@ from skimage import measure
 import cv2
 from PIL import Image
 from keras.utils import Sequence
+import matplotlib.pyplot as plt
+import sys
+import shutil
+import png
+import itertools
+import pydicom # for reading dicom files
+import pandas as pd # for some simple data analysis (right now, just to load in the labels data and quickly reference it)
+import tqdm 
+import imgaug
+import pypng
+import pillow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
@@ -51,18 +62,50 @@ def prepare_data(input_folder, output_file, size):
     trainA_path = os.path.join(input_folder, 'trainA')
     trainB_path = os.path.join(input_folder, 'trainB')
     
-    for foldersA, foldersB in zip(sorted(os.listdir(trainA_path)), sorted(os.listdir(trainB_path))):
+    for pazA, pazB in zip(sorted(os.listdir(trainA_path)), sorted(os.listdir(trainB_path))):
         
-        foldA_path = os.path.join(trainA_path, foldersA)
-        foldB_path = os.path.join(trainB_path, foldersB)
+        logging.info('Loading patient: %s' % pazA)
         
-        pathA = os.path.join(foldA_path, '*.png')
-        pathB = os.path.join(foldB_path, '*.png')
+        pazA_path = os.path.join(trainA_path, pazA)
+        pazB_path = os.path.join(trainB_path, pazB)
         
-        for fileA in sorted(glob.glob(pathA)):
-            trainA_addrs.append(fileA)
-        for fileB in sorted(glob.glob(pathB)):
-            trainB_addrs.append(fileB)
+        dcmA_fold = os.path.join(pazA_path, 'dicom')
+        dcmB_fold = os.path.join(pazB_path, 'dicom')
+        
+        pngA_fold = os.path.join(pazA_path, 'png') 
+        pngB_fold = os.path.join(pazB_path, 'png')
+        
+        makefolder(pngA_fold)
+        makefolder(pngB_fold)
+        
+        for file in sorted(os.listdir(dcmA_fold)):
+            
+            fn = file.split('.dcm')
+            dcmPath = os.path.join(dcmA_fold, file)
+            data_row_img = pydicom.dcmread(dcmPath)
+            image = np.uint8(data_row_img.pixel_array)
+            download_location = os.path.join(pngA_fold, fn[0] + '.png')
+            Image.fromarray(image).save(download_location)
+        
+        for file in sorted(os.listdir(dcmB_fold)):
+            
+            fn = file.split('.dcm')
+            dcmPath = os.path.join(dcmB_fold, file)
+            data_row_img = pydicom.dcmread(dcmPath)
+            image = np.uint8(data_row_img.pixel_array)
+            download_location = os.path.join(pngB_fold, fn[0] + '.png')
+            Image.fromarray(image).save(download_location)
+        
+        
+        pathA = os.path.join(pngA_fold, '*.png')
+        pathB = os.path.join(pngB_fold, '*.png')
+        
+        for img in sorted(glob.glob(pathA)):
+            trainA_addrs.append(img)
+        for img in sorted(glob.glob(pathB)):
+            trainB_addrs.append(img)
+    
+    logging.info('Preparing hdf5_file...')
     
     trainA_shape = (len(trainA_addrs), nx, ny)
     trainB_shape = (len(trainB_addrs), nx, ny)
@@ -92,15 +135,21 @@ def load_data (input_folder,
                size,
                force_overwrite=True):
     
+    logging.info('input folder:')
+    logging.info(input_folder)
+    logging.info('output folder:')
+    logging.info(preprocessing_folder)
+    
     size_str = '_'.join([str(i) for i in size])
     file_name = 'data_2D_size_%s.hdf5' % (size_str)
     file_path = os.path.join(preprocessing_folder, file_name)
+    
     makefolder(preprocessing_folder)
     
     if not os.path.exists(file_path) or force_overwrite:
         logging.info('This configuration has not yet been preprocessed')
         logging.info('Preprocessing now!')
-        prepare_data(input_folder, output_file, size)
+        prepare_data(input_folder, file_path, size)
     
     else:
         logging.info('Already preprocessed this configuration. Loading now!')
