@@ -40,7 +40,7 @@ def makefolder(folder):
     
 def deletefolder(folder):
     if os.path.exists(folder):
-        shutil.rmtree(path)
+        shutil.rmtree(folder)
         return True
     return False
 
@@ -104,7 +104,7 @@ def load_data (input_folder):
     foldA = os.path.join(input_folder, 'trainA', 'png')
     foldB = os.path.join(input_folder, 'trainB', 'png')
     
-    if not os.path.exists(foldA) or not os.path.exist(foldB) or force_overwrite:
+    if not os.path.exists(foldA) or not os.path.exists(foldB) or force_overwrite:
         logging.info('Dicom files have not yet been preprocessed')
         logging.info('Preprocessing now!')
         prepare_data(input_folder)
