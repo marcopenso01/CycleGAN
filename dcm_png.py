@@ -38,7 +38,7 @@ def makefolder(folder):
     return False
     
     
-del deletefolder(folder):
+def deletefolder(folder):
     if os.path.exist(folder):
         shutil.rmtree(path)
         return True
