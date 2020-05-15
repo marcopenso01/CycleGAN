@@ -16,7 +16,6 @@ import sys
 import shutil
 import png
 import itertools
-import pydicom # for reading dicom files
 import pandas as pd # for some simple data analysis (right now, just to load in the labels data and quickly reference it)
 import tqdm 
 import imgaug
@@ -36,7 +35,30 @@ def standardize_image(image):
     s = np.std(img_o)
     return np.divide((img_o - m), s)
     
-    
+
+def crop_or_pad_slice_to_size(slice, nx, ny):
+
+    x, y = slice.shape
+
+    x_s = (x - nx) // 2
+    y_s = (y - ny) // 2
+    x_c = (nx - x) // 2
+    y_c = (ny - y) // 2
+
+    if x > nx and y > ny:
+        slice_cropped = slice[x_s:x_s + nx, y_s:y_s + ny]
+    else:
+        slice_cropped = np.zeros((nx, ny))
+        if x <= nx and y > ny:
+            slice_cropped[x_c:x_c + x, :] = slice[:, y_s:y_s + ny]
+        elif x > nx and y <= ny:
+            slice_cropped[:, y_c:y_c + y] = slice[x_s:x_s + nx, :]
+        else:
+            slice_cropped[x_c:x_c + x, y_c:y_c + y] = slice[:, :]
+
+    return slice_cropped
+
+
 def makefolder(folder):
     '''
     Helper function to make a new folder if doesn't exist
@@ -62,43 +84,16 @@ def prepare_data(input_folder, output_file, size):
     trainA_path = os.path.join(input_folder, 'trainA')
     trainB_path = os.path.join(input_folder, 'trainB')
     
-    for pazA, pazB in zip(sorted(os.listdir(trainA_path)), sorted(os.listdir(trainB_path))):
+    pngA_path = os.path.join(trainA_path, 'png')
+    pngB_path = os.path.join(trainB_path, 'png')
+    
+    for pazA, pazB in zip(sorted(os.listdir(pngA_path)), sorted(os.listdir(pngB_path))):
         
-        logging.info('Loading patient: %s' % pazA)
-        
-        pazA_path = os.path.join(trainA_path, pazA)
-        pazB_path = os.path.join(trainB_path, pazB)
-        
-        dcmA_fold = os.path.join(pazA_path, 'dicom')
-        dcmB_fold = os.path.join(pazB_path, 'dicom')
-        
-        pngA_fold = os.path.join(pazA_path, 'png') 
-        pngB_fold = os.path.join(pazB_path, 'png')
-        
-        makefolder(pngA_fold)
-        makefolder(pngB_fold)
-        
-        for file in sorted(os.listdir(dcmA_fold)):
-            
-            fn = file.split('.dcm')
-            dcmPath = os.path.join(dcmA_fold, file)
-            data_row_img = pydicom.dcmread(dcmPath)
-            image = np.uint8(data_row_img.pixel_array)
-            download_location = os.path.join(pngA_fold, fn[0] + '.png')
-            Image.fromarray(image).save(download_location)
-        
-        for file in sorted(os.listdir(dcmB_fold)):
-            
-            fn = file.split('.dcm')
-            dcmPath = os.path.join(dcmB_fold, file)
-            data_row_img = pydicom.dcmread(dcmPath)
-            image = np.uint8(data_row_img.pixel_array)
-            download_location = os.path.join(pngB_fold, fn[0] + '.png')
-            Image.fromarray(image).save(download_location)
-        
-        
-        pathA = os.path.join(pngA_fold, '*.png')
-        pathB = os.path.join(pngB_fold, '*.png')
+        pazA_path = os.path.join(pngA_path, pazA)
+        pazB_path = os.path.join(pngB_path, pazB)
+              
+        pathA = os.path.join(pazA_path, '*.png')
+        pathB = os.path.join(pazB_path, '*.png')
         
         for img in sorted(glob.glob(pathA)):
             trainA_addrs.append(img)
@@ -117,6 +112,7 @@ def prepare_data(input_folder, output_file, size):
         addr_img = trainA_addrs[i]
         img = cv2.imread(addrs_img, 0)
         img = standardize_image(img)
+        img = crop_or_pad_slice_to_size(img, 256, 256)
         img = cv2.resize(img, (nx,ny), interpolation=cv2.INTER_AREA)
         hdf5_file["trainA"][i, ...] = img[None]
     
@@ -124,6 +120,7 @@ def prepare_data(input_folder, output_file, size):
         addr_img = trainB_addrs[i]
         img = cv2.imread(addrs_img, 0)
         img = standardize_image(img)
+        img = crop_or_pad_slice_to_size(img, 256, 256)
         img = cv2.resize(img, (nx,ny), interpolation=cv2.INTER_AREA)
         hdf5_file["trainB"][i, ...] = img[None]    
     
