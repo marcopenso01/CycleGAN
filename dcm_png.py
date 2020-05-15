@@ -67,23 +67,23 @@ def prepare_data(input_folder):
         pazA_path = os.path.join(dcmA_path, pazA)
         pazB_path = os.path.join(dcmB_path, pazB)
         
-        logging.info('FoldA Paz:')
-        logging.info(pazA)
-        logging.info('Number of file:')
-        logging.info(len(os.listdir(pazA_path)))
-        logging.info('FoldB Paz:')
-        logging.info(pazB)
-        logging.info('Number of file:')
-        logging.info(len(os.listdir(pazB_path)))
+        download_locationA = os.path.join(pngA_path, pazA)
+        makefolder(download_locationA)
+        download_locationB = os.path.join(pngB_path, pazB)
+        makefolder(download_locationB)
         
+        logging.info('FoldA Paz: %s' % pazA)
+        logging.info('Number of file: %d' % len(os.listdir(pazA_path)))
+        logging.info('FoldB Paz: %s' % pazB)
+        logging.info('Number of file: %d' % len(os.listdir(pazB_path)))
+               
         for file in sorted(os.listdir(pazA_path)):
             
-            fn = file.split('.dcm')
+            ffn = file.split('.dcm')
             dcmPath = os.path.join(pazA_path, file)
             data_row_img = pydicom.dcmread(dcmPath)
             image = np.uint8(data_row_img.pixel_array)
-            download_location = os.path.join(pngA_path, pazA, fn[0] + '.png')
-            Image.fromarray(image).save(download_location)
+            Image.fromarray(image).save(os.path.join(download_locationA, fn[0] + '.png'))
 
         for file in sorted(os.listdir(pazB_path)):
             
@@ -91,15 +91,17 @@ def prepare_data(input_folder):
             dcmPath = os.path.join(pazB_path, file)
             data_row_img = pydicom.dcmread(dcmPath)
             image = np.uint8(data_row_img.pixel_array)
-            download_location = os.path.join(pngB_path, pazB, fn[0] + '.png')
-            Image.fromarray(image).save(download_location)
+            Image.fromarray(image).save(os.path.join(download_locationB, fn[0] + '.png'))
     
 
-def load_data (input_folder):
+def load_data (input_folder,
+              force_overwrite=True):
     
-    logging.info('Converting Dicom to PNG...')
     logging.info('input folder:')
     logging.info(input_folder)
+    logging.info('................................................')
+    logging.info('Converting Dicom to PNG...')
+    logging.info('................................................')
     
     foldA = os.path.join(input_folder, 'trainA', 'png')
     foldB = os.path.join(input_folder, 'trainB', 'png')
