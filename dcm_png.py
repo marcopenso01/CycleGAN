@@ -66,36 +66,41 @@ def prepare_data(input_folder):
     
         pazA_path = os.path.join(dcmA_path, pazA)
         pazB_path = os.path.join(dcmB_path, pazB)
-        
-        download_locationA = os.path.join(pngA_path, pazA)
-        makefolder(download_locationA)
-        download_locationB = os.path.join(pngB_path, pazB)
-        makefolder(download_locationB)
-        
-        logging.info('FoldA Paz: %s' % pazA)
-        logging.info('Number of file: %d' % len(os.listdir(pazA_path)))
-        logging.info('FoldB Paz: %s' % pazB)
-        logging.info('Number of file: %d' % len(os.listdir(pazB_path)))
-               
-        for file in sorted(os.listdir(pazA_path)):
-            
-            ffn = file.split('.dcm')
-            dcmPath = os.path.join(pazA_path, file)
-            data_row_img = pydicom.dcmread(dcmPath)
-            image = np.uint8(data_row_img.pixel_array)
-            Image.fromarray(image).save(os.path.join(download_locationA, fn[0] + '.png'))
 
-        for file in sorted(os.listdir(pazB_path)):
+        for seriesA, seriesB in zip(os.listdir(pazA_path), os.listdir(pazB_path)):
+
+            download_locationA = os.path.join(pngA_path, pazA)
+            makefolder(download_locationA)
+            download_locationB = os.path.join(pngB_path, pazB)
+            makefolder(download_locationB)
             
-            fn = file.split('.dcm')
-            dcmPath = os.path.join(pazB_path, file)
-            data_row_img = pydicom.dcmread(dcmPath)
-            image = np.uint8(data_row_img.pixel_array)
-            Image.fromarray(image).save(os.path.join(download_locationB, fn[0] + '.png'))
+            foldA = os.path.join(pazA_path, seriesA)
+            foldB = os.path.join(pazB_path, seriesB)
+
+            logging.info('FoldA Paz: %s' % pazA)
+            logging.info('Number of file: %d' % len(os.listdir(foldA)))
+            logging.info('FoldB Paz: %s' % pazB)
+            logging.info('Number of file: %d' % len(os.listdir(foldB)))
+                    
+            for file in sorted(os.listdir(foldA)):
+                
+                fn = file.split('.dcm')
+                dcmPath = os.path.join(foldA, file)
+                data_row_img = pydicom.dcmread(dcmPath)
+                image = np.uint8(data_row_img.pixel_array)
+                Image.fromarray(image).save(os.path.join(download_locationA, fn[0] + '.png'))
+
+            for file in sorted(os.listdir(foldB)):
+                
+                fn = file.split('.dcm')
+                dcmPath = os.path.join(foldB, file)
+                data_row_img = pydicom.dcmread(dcmPath)
+                image = np.uint8(data_row_img.pixel_array)
+                Image.fromarray(image).save(os.path.join(download_locationB, fn[0] + '.png'))
     
 
 def load_data (input_folder,
-              force_overwrite=True):
+               force_overwrite=True):
     
     logging.info('input folder:')
     logging.info(input_folder)
