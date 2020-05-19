@@ -87,7 +87,7 @@ def prepare_data(input_folder):
                 fn = file.split('.dcm')
                 dcmPath = os.path.join(foldA, file)
                 data_row_img = pydicom.dcmread(dcmPath)
-                image = np.uint8(data_row_img.pixel_array)
+                image = np.uint16(data_row_img.pixel_array)
                 Image.fromarray(image).save(os.path.join(download_locationA, fn[0] + '.png'))
 
             for file in sorted(os.listdir(foldB)):
@@ -95,7 +95,7 @@ def prepare_data(input_folder):
                 fn = file.split('.dcm')
                 dcmPath = os.path.join(foldB, file)
                 data_row_img = pydicom.dcmread(dcmPath)
-                image = np.uint8(data_row_img.pixel_array)
+                image = np.uint16(data_row_img.pixel_array)
                 Image.fromarray(image).save(os.path.join(download_locationB, fn[0] + '.png'))
     
 
