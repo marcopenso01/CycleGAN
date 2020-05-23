@@ -32,32 +32,6 @@ def standardize_image(image):
     m = np.mean(img_o)
     s = np.std(img_o)
     return np.divide((img_o - m), s)
-    
-
-def crop_or_pad_slice_to_size(im, nx, ny, cx, cy):
-    slice = im.copy()
-    x, y = slice.shape
-    y1 = (cy - (ny//2))
-    y2 = (cy + (ny//2))
-    x1 = (cx - (nx//2))
-    x2 = (cx + (nx//2))
-
-    if y1 < 0:
-        slice = np.append(np.zeros((x,abs(y1))),slice, axis=1)
-        x, y = slice.shape
-        y1=0
-    if x1 < 0:
-        slice = np.append(np.zeros((abs(x1),y)),slice, axis=0)
-        x, y = slice.shape
-        x1=0
-    if y2 > 525:
-        slice = np.append(slice, np.zeros((x,y2-512)), axis=1)
-        x, y = slice.shape
-    if x2 > 525:
-        slice = np.append(slice, np.zeros((x2-512,y)), axis=0)
-        
-    slice_cropped = slice[x1:x1+256, y1:y1+256]
-    return slice_cropped
 
 
 def makefolder(folder):
@@ -72,19 +46,6 @@ def makefolder(folder):
     return False
     
     
-#click event function
-def click_event(event, x, y, flags, param):
-    if event == cv2.EVENT_LBUTTONDOWN:
-        print(x,",",y)
-        centrX.append(y)
-        centrY.append(x)
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        strXY = str(x)+", "+str(y)
-        cv2.putText(img, strXY, (x,y), font, 0.5, (255,255,0), 2)
-        cv2.imshow("image", img)
-        cv2.destroyAllWindows()
-    
-    
 def prepare_data(input_folder, output_file, size):
 
     '''
@@ -95,24 +56,20 @@ def prepare_data(input_folder, output_file, size):
     trainA_addrs = []
     trainB_addrs = []
     
-    trainA_path = os.path.join(input_folder, 'trainA')
-    trainB_path = os.path.join(input_folder, 'trainB')
+    trainA_path = os.path.join(input_folder, 'trainA', 'crop_png')
+    trainB_path = os.path.join(input_folder, 'trainB', 'crop_png')
     
-    pngA_path = os.path.join(trainA_path, 'png')
-    pngB_path = os.path.join(trainB_path, 'png')
-    
-    for pazA, pazB in zip(sorted(os.listdir(pngA_path)), sorted(os.listdir(pngB_path))):
+    for pazA, pazB in zip(sorted(os.listdir(trainA_path)), sorted(os.listdir(trainB_path))):
         
-        pazA_path = os.path.join(pngA_path, pazA)
-        pazB_path = os.path.join(pngB_path, pazB)
-              
-        pathA = os.path.join(pazA_path, '*.png')
-        pathB = os.path.join(pazB_path, '*.png')
-        
-        for img in sorted(glob.glob(pathA)):
-            trainA_addrs.append(img)
-        for img in sorted(glob.glob(pathB)):
-            trainB_addrs.append(img)
+        pazA_path = os.path.join(trainA_path, pazA)
+        pazB_path = os.path.join(trainB_path, pazB)
+               
+        for file in sorted(os.listdir(pazA_path)):
+            path_img = os.path.join(pazA_path, file)
+            trainA_addrs.append(path_img)
+        for file in sorted(os.listdir(pazB_path)):
+            path_img = os.path.join(pazB_path, file)
+            trainB_addrs.append(path_img)
     
     logging.info('Preparing hdf5_file...')
     
