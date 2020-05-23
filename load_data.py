@@ -16,11 +16,9 @@ import sys
 import shutil
 import png
 import itertools
+import pydicom # for reading dicom files
 import pandas as pd # for some simple data analysis (right now, just to load in the labels data and quickly reference it)
-import tqdm 
-import imgaug
-import pypng
-import pillow
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
@@ -36,26 +34,29 @@ def standardize_image(image):
     return np.divide((img_o - m), s)
     
 
-def crop_or_pad_slice_to_size(slice, nx, ny):
-
+def crop_or_pad_slice_to_size(im, nx, ny, cx, cy):
+    slice = im.copy()
     x, y = slice.shape
+    y1 = (cy - (ny//2))
+    y2 = (cy + (ny//2))
+    x1 = (cx - (nx//2))
+    x2 = (cx + (nx//2))
 
-    x_s = (x - nx) // 2
-    y_s = (y - ny) // 2
-    x_c = (nx - x) // 2
-    y_c = (ny - y) // 2
-
-    if x > nx and y > ny:
-        slice_cropped = slice[x_s:x_s + nx, y_s:y_s + ny]
-    else:
-        slice_cropped = np.zeros((nx, ny))
-        if x <= nx and y > ny:
-            slice_cropped[x_c:x_c + x, :] = slice[:, y_s:y_s + ny]
-        elif x > nx and y <= ny:
-            slice_cropped[:, y_c:y_c + y] = slice[x_s:x_s + nx, :]
-        else:
-            slice_cropped[x_c:x_c + x, y_c:y_c + y] = slice[:, :]
-
+    if y1 < 0:
+        slice = np.append(np.zeros((x,abs(y1))),slice, axis=1)
+        x, y = slice.shape
+        y1=0
+    if x1 < 0:
+        slice = np.append(np.zeros((abs(x1),y)),slice, axis=0)
+        x, y = slice.shape
+        x1=0
+    if y2 > 525:
+        slice = np.append(slice, np.zeros((x,y2-512)), axis=1)
+        x, y = slice.shape
+    if x2 > 525:
+        slice = np.append(slice, np.zeros((x2-512,y)), axis=0)
+        
+    slice_cropped = slice[x1:x1+256, y1:y1+256]
     return slice_cropped
 
 
@@ -69,6 +70,19 @@ def makefolder(folder):
         os.makedirs(folder)
         return True
     return False
+    
+    
+#click event function
+def click_event(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        print(x,",",y)
+        centrX.append(y)
+        centrY.append(x)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        strXY = str(x)+", "+str(y)
+        cv2.putText(img, strXY, (x,y), font, 0.5, (255,255,0), 2)
+        cv2.imshow("image", img)
+        cv2.destroyAllWindows()
     
     
 def prepare_data(input_folder, output_file, size):
