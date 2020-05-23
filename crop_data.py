@@ -19,7 +19,9 @@ import pandas as pd # for some simple data analysis (right now, just to load in 
 import imgaug
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
-
+cv2.destroyAllWindows()
+centrX = []
+centrY = []
 
 def makefolder(folder):
     '''
@@ -64,29 +66,27 @@ def crop_or_pad_slice_to_size(im, nx, ny, cx, cy):
         
     slice_cropped = slice[x1:x1+256, y1:y1+256]
     return slice_cropped
-    
-    
-#click event function
-def click_event(event, x, y, flags, param):
-    if event == cv2.EVENT_LBUTTONDOWN:
-        print(x,",",y)
-        centrX.append(y)
-        centrY.append(x)
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        strXY = str(x)+", "+str(y)
-        cv2.putText(img, strXY, (x,y), font, 0.5, (255,255,0), 2)
-        cv2.imshow("image", img)
-        cv2.destroyAllWindows()
-        
+            
 
 def prepare_data(input_folder):
 
-    events = [i for i in dir(cv2) if 'EVENT' in i]
-    #print(events)
     cv2.destroyAllWindows()
     centrX = []
     centrY = []
-        
+    
+    #click event function
+    def click_event(event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            #print(x,",",y)
+            centrX.append(y)
+            centrY.append(x)
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            strXY = str(x)+", "+str(y)
+            cv2.putText(img, strXY, (x,y), font, 0.5, (255,255,0), 2)
+            cv2.imshow("image", img)
+            cv2.destroyAllWindows()
+    
+    
     trainA_path = os.path.join(input_folder, 'trainA')
     trainB_path = os.path.join(input_folder, 'trainB')
     
@@ -122,6 +122,7 @@ def prepare_data(input_folder):
             addr_img.append(addr)
             name_img.append(file)
             
+        num_file = len(addr_img)
         median_centrX = []
         median_centrY = []
         
@@ -147,6 +148,7 @@ def prepare_data(input_folder):
             median_centrX.append(int(np.median(centrX)))
             median_centrY.append(int(np.median(centrY)))
         
+        logging.info('Saving Data...')
         for phase in range(30):
             for frame in range(phase, num_file, 30):
                 im = np.array(Image.open(addr_img[frame])).astype("uint16")
@@ -166,7 +168,8 @@ def prepare_data(input_folder):
             addr = os.path.join(pazB_path, file)
             addr_img.append(addr)
             name_img.append(file)
-            
+        
+        num_file = len(addr_img)
         median_centrX = []
         median_centrY = []
         
@@ -192,6 +195,7 @@ def prepare_data(input_folder):
             median_centrX.append(int(np.median(centrX)))
             median_centrY.append(int(np.median(centrY)))
         
+        logging.info('Saving Data...')
         for phase in range(30):
             for frame in range(phase, num_file, 30):
                 im = np.array(Image.open(addr_img[frame])).astype("uint16")
@@ -226,6 +230,6 @@ def load_data (input_folder,
 if __name__ == '__main__':
     
     # Paths settings
-    input_folder = '/content/drive/My Drive/PACEmaker/data'
+    input_folder = 'F:/prova/data'
         
     d=load_data(input_folder)
