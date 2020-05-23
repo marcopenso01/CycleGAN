@@ -1,5 +1,4 @@
 import os
-import glob
 import numpy as np
 import logging
 import nibabel as nib
@@ -10,7 +9,6 @@ from skimage import util
 from skimage import measure
 import cv2
 from PIL import Image
-from keras.utils import Sequence
 import matplotlib.pyplot as plt
 import sys
 import shutil
@@ -18,10 +16,7 @@ import png
 import itertools
 import pydicom # for reading dicom files
 import pandas as pd # for some simple data analysis (right now, just to load in the labels data and quickly reference it)
-import tqdm 
 import imgaug
-import pypng
-import pillow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
@@ -88,15 +83,21 @@ def prepare_data(input_folder):
                 dcmPath = os.path.join(foldA, file)
                 data_row_img = pydicom.dcmread(dcmPath)
                 image = np.uint16(data_row_img.pixel_array)
-                Image.fromarray(image).save(os.path.join(download_locationA, fn[0] + '.png'))
-
+                array_buffer = image.tobytes()
+                img = Image.new("I", image.shape)
+                img.frombytes(array_buffer, 'raw', "I;16")
+                img.save(os.path.join(download_locationA, fn[0] + '.png'))
+                
             for file in sorted(os.listdir(foldB)):
                 
                 fn = file.split('.dcm')
                 dcmPath = os.path.join(foldB, file)
                 data_row_img = pydicom.dcmread(dcmPath)
                 image = np.uint16(data_row_img.pixel_array)
-                Image.fromarray(image).save(os.path.join(download_locationB, fn[0] + '.png'))
+                array_buffer = image.tobytes()
+                img = Image.new("I", image.shape)
+                img.frombytes(array_buffer, 'raw', "I;16")
+                img.save(os.path.join(download_locationB, fn[0] + '.png'))
     
 
 def load_data (input_folder,
