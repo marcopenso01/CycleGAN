@@ -11,9 +11,8 @@ models_dir = '/home/xuagu37/CycleGAN/train_T1_FA/models'
 output_sample_dir = '/home/xuagu37/CycleGAN/train_T1_FA/output_sample.png'
 batch_size = 10
 epochs = 200
-normalization_factor_A = 1000
-normalization_factor_B = 1
-myCycleGAN.train(trainA_dir, normalization_factor_A, trainB_dir, normalization_factor_B, models_dir, batch_size, epochs, output_sample_dir=output_sample_dir, output_sample_channels=1)
+
+myCycleGAN.train(train_dir, models_dir, batch_size, epochs, output_sample_dir=output_sample_dir, output_sample_channels=1)
 
 for epoch in range(20, 201, 20):
     G_X2Y_dir = '/home/xuagu37/CycleGAN/train_T1_FA/models/G_A2B_weights_epoch_' + str(epoch) + '.hdf5'
