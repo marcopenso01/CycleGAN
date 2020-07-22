@@ -5,9 +5,7 @@ from CycleGAN import *
 # Create a CycleGAN on GPU 0
 myCycleGAN = CycleGAN(0)
 
-trainA_dir = '/home/xuagu37/CycleGAN/data/T1_training.nii.gz'
-trainB_dir = '/home/xuagu37/CycleGAN/data/FA_training.nii.gz'
-models_dir = '/home/xuagu37/CycleGAN/train_T1_FA/models'
+train_dir = 'F:\prova\data'
 output_sample_dir = '/home/xuagu37/CycleGAN/train_T1_FA/output_sample.png'
 batch_size = 10
 epochs = 200
