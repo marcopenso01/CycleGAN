@@ -420,7 +420,7 @@ def denormalize_data(data, normalization_factor):
     return data
 
 def load_data(data_dir):
-    data_file_path = os.path.join(data_dir, 'preprocessing')
+    data_file_path = os.path.join(data_dir, 'preprocessing', 'train.hdf5')  
     data = h5py.File(data_file_path, 'r')
     return data
 
