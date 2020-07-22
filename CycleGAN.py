@@ -190,7 +190,7 @@ class CycleGAN():
         return Model(inputs=input_img, outputs=x, name=name)
 
 
-    def train(self, train_A_dir, normalization_factor_A, train_B_dir, normalization_factor_B, models_dir, batch_size=10, epochs=200, cycle_loss_type='L1', use_resize_convolution=False, use_supervised_learning=False, output_sample_flag=True, output_sample_dir=None, output_sample_channels=1, dropout_rate=0):
+    def train(self, train_A_dir, train_B_dir, models_dir, batch_size=10, epochs=200, cycle_loss_type='L1', use_resize_convolution=False, use_supervised_learning=False, output_sample_flag=True, output_sample_dir=None, output_sample_channels=1, dropout_rate=0):
         self.batch_size = batch_size
         self.epochs = epochs
         self.decay_epoch = self.epochs//2 # the epoch where linear decay of the learning rates starts
@@ -198,15 +198,23 @@ class CycleGAN():
         self.use_resize_convolution = use_resize_convolution
         self.use_supervised_learning = use_supervised_learning
         self.dropout_rate = dropout_rate
-        # Data dir
+        
+        # Load data
         self.train_A_dir = train_A_dir
         self.train_B_dir = train_B_dir
-        if not os.path.exists(models_dir):
-            os.makedirs(models_dir)
-        self.models_dir = models_dir
-        self.train_A = load_data(self.train_A_dir, normalization_factor_A)
-        self.train_B = load_data(self.train_B_dir, normalization_factor_B)
-        # self.train_A, self.train_B = pad_data(self.train_A, self.train_B)
+        self.data_A = load_data(self.train_A_dir)
+        self.data_B = load_data(self.train_B_dir)
+        # the following are HDF5 datasets, not numpy arrays
+        self.train_A = self.data_A['images_train']
+        self.train_B = self.data_B['images_train']
+        logging.info('Data summary:')
+        logging.info(' - Images_A:')
+        logging.info(self.train_A.shape)
+        logging.info(self.train_A.dtype)
+        logging.info(' - Images_B:')
+        logging.info(self.train_B.shape)
+        logging.info(self.train_B.dtype)
+        
         self.data_shape = self.train_A.shape[1:4]
         self.data_num = self.train_A.shape[0]
         self.loop_num = self.data_num // self.batch_size
@@ -398,16 +406,6 @@ class CycleGAN():
         models_dir_epoch_i = os.path.join(self.models_dir, '{}_weights_epoch_{}.hdf5'.format(self.G_B2A.name, epoch_i+1))
         self.G_B2A.save_weights(models_dir_epoch_i)
 
-def normalize_data(data, normalization_factor):
-    # Normalize data to [-1, 1]
-    if np.array(normalization_factor).size == 1:
-        data = data/normalization_factor
-    else:
-        for i in range(data.shape[2]):
-            data[:,:,i,:] = data[:,:,i,:]/normalization_factor[i] # normalize data for each channel
-    data = data*2-1
-    return data
-
 def denormalize_data(data, normalization_factor):
     # Denormalize data to [-1, 1]
     data = (data+1)/2
@@ -418,20 +416,10 @@ def denormalize_data(data, normalization_factor):
             data[:,:,i,:] = data[:,:,i,:]*normalization_factor[i] # normalize data for each channel
     return data
 
-def load_data(data_dir, normalization_factor):
-        data = nib.load(data_dir).get_fdata()
-        data[data<0] = 0
-        if data.ndim == 2:
-            data = data[:,:,np.newaxis, np.newaxis]
-        data = normalize_data(data, normalization_factor)
-        data = np.transpose(data, (3, 0, 1, 2))
-        print('Loading data, data size: {}, number of data: {}'.format(data.shape[1:4], data.shape[0]))
-        # Make sure that slice size is multiple 4
-        if (data.shape[1]%4 != 0):
-            data = np.append(data, np.zeros((data.shape[0], 4-data.shape[1]%4, data.shape[2], data.shape[3]))-1, axis=1)
-        if (data.shape[2]%4 != 0):
-            data = np.append(data, np.zeros((data.shape[0], data.shape[1], 4-data.shape[2]%4, data.shape[3]))-1, axis=2)
-        return data
+def load_data(data_dir):
+    data_file_path = os.path.join(data_dir, 'preprocessing')
+    data = h5py.File(data_file_path, 'r')
+    return data
 
 def pad_data(data_A, data_B):
     size_n = data_A.shape[0]
