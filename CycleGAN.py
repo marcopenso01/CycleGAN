@@ -421,6 +421,10 @@ def load_data(data_dir):
     dt = h5py.File(data_file_path, 'r')
     data = dt['images_train'][()]
     data = data[..., np.newaxis]
+    if (data.shape[1]%4 != 0):
+            data = np.append(data, np.zeros((data.shape[0], 4-data.shape[1]%4, data.shape[2], data.shape[3]))-1, axis=1)
+        if (data.shape[2]%4 != 0):
+            data = np.append(data, np.zeros((data.shape[0], data.shape[1], 4-data.shape[2]%4, data.shape[3]))-1, axis=2)
     return data
 
 def pad_data(data_A, data_B):
