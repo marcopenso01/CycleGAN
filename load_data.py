@@ -152,8 +152,8 @@ def prepare_data(input_folder):
     makefolder(procA_path)
     makefolder(procB_path)
     
-    data_file_pathA = os.path.join(procA_path, 'trainA.hdf5')
-    data_file_pathB = os.path.join(procB_path, 'trainB.hdf5')
+    data_file_pathA = os.path.join(procA_path, 'train.hdf5')
+    data_file_pathB = os.path.join(procB_path, 'train.hdf5')
     hdf5_fileA = h5py.File(data_file_pathA, "w")
     hdf5_fileB = h5py.File(data_file_pathB, "w")
     nx = 200
