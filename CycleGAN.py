@@ -205,11 +205,8 @@ class CycleGAN():
         # Load data
         self.train_A_dir = train_A_dir
         self.train_B_dir = train_B_dir
-        self.data_A = load_data(self.train_A_dir)
-        self.data_B = load_data(self.train_B_dir)
-        # the following are HDF5 datasets, not numpy arrays
-        self.train_A = self.data_A['images_train']
-        self.train_B = self.data_B['images_train']
+        self.train_A = load_data(self.train_A_dir)
+        self.train_B = load_data(self.train_B_dir)
         logging.info('Data summary:')
         logging.info(' - Images_A:')
         logging.info(self.train_A.shape)
@@ -421,7 +418,9 @@ def denormalize_data(data, normalization_factor):
 
 def load_data(data_dir):
     data_file_path = os.path.join(data_dir, 'preprocessing', 'train.hdf5')  
-    data = h5py.File(data_file_path, 'r')
+    dt = h5py.File(data_file_path, 'r')
+    data = dt['images_train'][()]
+    data = data[..., np.newaxis]
     return data
 
 def pad_data(data_A, data_B):
