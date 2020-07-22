@@ -5,12 +5,13 @@ from CycleGAN import *
 # Create a CycleGAN on GPU 0
 myCycleGAN = CycleGAN(0)
 
-train_dir = 'F:\prova\data'
+train_A_dir = 'F:\prova\data\trainA'
+train_B_dir = 'F:\prova\data\trainB'
 output_sample_dir = '/home/xuagu37/CycleGAN/train_T1_FA/output_sample.png'
 batch_size = 10
 epochs = 200
 
-myCycleGAN.train(train_dir, models_dir, batch_size, epochs, output_sample_dir=output_sample_dir, output_sample_channels=1)
+myCycleGAN.train(train_A_dir, train_B_dir, models_dir, batch_size, epochs, output_sample_dir=output_sample_dir, output_sample_channels=1)
 
 for epoch in range(20, 201, 20):
     G_X2Y_dir = '/home/xuagu37/CycleGAN/train_T1_FA/models/G_A2B_weights_epoch_' + str(epoch) + '.hdf5'
