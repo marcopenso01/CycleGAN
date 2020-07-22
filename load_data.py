@@ -345,6 +345,7 @@ def prepare_data(input_folder):
             else:
                 translY.append(int(cols/2)-crCols)
              
+        logging.info('Saving Data...')    
         for phase in range(30):
             for frame in range(phase, num_file, 30):
                 addr_img = train_addrs[frame]
