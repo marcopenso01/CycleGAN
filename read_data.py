@@ -20,6 +20,10 @@ import pydicom # for reading dicom files
 import pandas as pd # for some simple data analysis (right now, just to load in the labels data and quickly reference it)
 import imgaug
 
+'''
+converto file .dicom in immagini .png
+'''
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 
 
