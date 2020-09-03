@@ -21,7 +21,7 @@ import pandas as pd # for some simple data analysis (right now, just to load in 
 import imgaug
 
 '''
-converto file .dicom in immagini .png
+leggo file .dicom e salvo immagini .png
 '''
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
