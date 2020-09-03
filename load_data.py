@@ -25,6 +25,8 @@ import pandas as pd # for some simple data analysis (right now, just to load in 
 import imgaug
 import math as mt
 
+import read_dicom
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 cv2.destroyAllWindows()
 X = []
@@ -369,14 +371,21 @@ def prepare_data(input_folder):
 
 
 def load_data (input_folder,
-               force_overwrite=True):
+               force_overwrite=False):
     
     logging.info('input folder:')
     logging.info(input_folder)
     logging.info('................................................')
     
+    read_dicom.load_data(input_folder,
+                         force_overwrite)
+    
     foldA = os.path.join(input_folder, 'trainA', 'preprocessing')
     foldB = os.path.join(input_folder, 'trainB', 'preprocessing')
+    
+    logging.info('................................................')
+    logging.info('Preprocessing PNG files...')
+    logging.info('................................................')
     
     if not os.path.exists(foldA) or not os.path.exists(foldB) or force_overwrite:
         logging.info('files have not yet been Processed')
