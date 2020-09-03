@@ -107,7 +107,7 @@ def prepare_data(input_folder):
     
 
 def load_data (input_folder,
-               force_overwrite=True):
+               force_overwrite=False):
     
     logging.info('input folder:')
     logging.info(input_folder)
