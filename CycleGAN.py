@@ -202,6 +202,10 @@ class CycleGAN():
         self.use_supervised_learning = use_supervised_learning
         self.dropout_rate = dropout_rate
         
+        if not os.path.exists(models_dir):
+            os.makedirs(models_dir)
+        self.models_dir = models_dir
+        
         # Load data
         self.train_A_dir = train_A_dir
         self.train_B_dir = train_B_dir
