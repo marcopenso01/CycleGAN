@@ -8,6 +8,7 @@ myCycleGAN = CycleGAN(0)
 train_A_dir = 'F:\prova\data\trainA'
 train_B_dir = 'F:\prova\data\trainB'
 output_sample_dir = '/home/xuagu37/CycleGAN/train_T1_FA/output_sample.png'
+model_dir = ''
 batch_size = 10
 epochs = 200
 
