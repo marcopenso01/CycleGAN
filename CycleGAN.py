@@ -288,7 +288,7 @@ class CycleGAN():
                                 second_row = np.append(second_row, np.rot90(train_B_batch[0,:,:,channel_i+1]), axis=1)
                                 third_row = np.append(third_row, np.rot90(synthetic_B_batch[0,:,:,channel_i+1]), axis=1)
                         output_sample = np.append(np.append(first_row, second_row, axis=0), third_row, axis=0)
-                        toimage(output_sample, cmin=-1, cmax=1).save(output_sample_dir)
+                        toimage(output_sample, cmin=0, cmax=1).save(output_sample_dir)
             if (epoch_i+1) % 20 == 0:
                 self.save_model(epoch_i)
         print("\u001b[12B")
