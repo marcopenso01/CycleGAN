@@ -1,7 +1,7 @@
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 # The GPU id to use, usually either "0" or "1"
-# os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="0,1"
 import nibabel as nib
 from keras.layers import Dropout, Layer, Input, Conv2D, Activation, add, BatchNormalization, Conv2DTranspose, UpSampling2D
 from keras_contrib.layers.normalization import InstanceNormalization, InputSpec
