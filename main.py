@@ -1,6 +1,5 @@
 
 import CycleGAN
-import preprocess
 from CycleGAN import *
 
 # Create a CycleGAN on GPU 0
@@ -13,8 +12,6 @@ output_sample_dir = 'F:\prova\data\output'
 model_dir = 'F:\prova\data\models'
 batch_size = 10
 epochs = 200
-
-preprocess.load_data(input_folder, force_overwrite=True)
 
 myCycleGAN.train(train_A_dir, train_B_dir, models_dir, batch_size, epochs, output_sample_dir=output_sample_dir, output_sample_channels=1)
 
