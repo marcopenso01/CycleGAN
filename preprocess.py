@@ -400,5 +400,4 @@ if __name__ == '__main__':
     
     # Paths settings
     input_folder = 'F:\prova\data'
-        
-    d=load_data(input_folder)
+    d=load_data(input_folder, force_overwrite=True)
