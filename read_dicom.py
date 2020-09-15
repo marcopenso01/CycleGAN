@@ -21,7 +21,8 @@ import pandas as pd # for some simple data analysis (right now, just to load in 
 import imgaug
 
 '''
-leggo file .dicom e salvo immagini .png
+converto file .dicom in immagini .png
+se uint8=True salvo png anche in uint8 per visualizzare immagini
 '''
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
@@ -46,7 +47,7 @@ def deletefolder(folder):
     return False
 
 
-def prepare_data(input_folder):
+def prepare_data(input_folder, uint_8=False):
 
     trainA_path = os.path.join(input_folder, 'trainA')
     trainB_path = os.path.join(input_folder, 'trainB')
@@ -61,7 +62,19 @@ def prepare_data(input_folder):
     deletefolder(pngB_path)
     
     makefolder(pngA_path)
-    makefolder(pngB_path)    
+    makefolder(pngB_path)
+    
+    if uint_8:
+        
+        png8A_path = os.path.join(trainA_path, 'png_8')
+        png8B_path = os.path.join(trainB_path, 'png_8')
+        
+        deletefolder(png8A_path)
+        deletefolder(png8B_path)
+        
+        makefolder(png8A_path)
+        makefolder(png8B_path)
+        
     
     for pazA, pazB in zip(sorted(os.listdir(dcmA_path)), sorted(os.listdir(dcmB_path))):
         
@@ -74,6 +87,13 @@ def prepare_data(input_folder):
             makefolder(download_locationA)
             download_locationB = os.path.join(pngB_path, pazB)
             makefolder(download_locationB)
+            
+            if uint_8:
+                
+                download_png8A = os.path.join(png8A_path, pazA)
+                makefolder(download_png8A)
+                download_png8B = os.path.join(png8B_path, pazB)
+                makefolder(download_png8B)
             
             foldA = os.path.join(pazA_path, seriesA)
             foldB = os.path.join(pazB_path, seriesB)
@@ -93,7 +113,11 @@ def prepare_data(input_folder):
                 img = Image.new("I", image.shape)
                 img.frombytes(array_buffer, 'raw', "I;16")
                 img.save(os.path.join(download_locationA, fn[0] + '.png'))
-                
+                if uint_8:
+                    maxx = image.max()
+                    image = cv2.convertScaleAbs(image, alpha=(255.0/maxx))
+                    cv2.imwrite(os.path.join(download_png8A, fn[0] + '.png'), image)
+                    
             for file in sorted(os.listdir(foldB)):
                 
                 fn = file.split('.dcm')
@@ -104,10 +128,16 @@ def prepare_data(input_folder):
                 img = Image.new("I", image.shape)
                 img.frombytes(array_buffer, 'raw', "I;16")
                 img.save(os.path.join(download_locationB, fn[0] + '.png'))
+                if uint_8:
+                    maxx = image.max()
+                    image = cv2.convertScaleAbs(image, alpha=(255.0/maxx))
+                    cv2.imwrite(os.path.join(download_png8B, fn[0] + '.png'), image)
+                    
     
 
 def load_data (input_folder,
-               force_overwrite=False):
+               force_overwrite=True,
+               uint_8=True):
     
     logging.info('input folder:')
     logging.info(input_folder)
@@ -121,7 +151,7 @@ def load_data (input_folder,
     if not os.path.exists(foldA) or not os.path.exists(foldB) or force_overwrite:
         logging.info('Dicom files have not yet been preprocessed')
         logging.info('Preprocessing now!')
-        prepare_data(input_folder)
+        prepare_data(input_folder, uint_8)
     
     else:
         logging.info('Already preprocessed Dicom files')
