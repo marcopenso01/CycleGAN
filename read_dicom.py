@@ -1,21 +1,13 @@
 import os
-import glob
 import numpy as np
 import logging
-import nibabel as nib
-import gc
 import h5py
 from skimage import transform
 from skimage import util
 from skimage import measure
 import cv2
 from PIL import Image
-from keras.utils import Sequence
-import matplotlib.pyplot as plt
-import sys
 import shutil
-import png
-import itertools
 import pydicom # for reading dicom files
 import pandas as pd # for some simple data analysis (right now, just to load in the labels data and quickly reference it)
 import imgaug
