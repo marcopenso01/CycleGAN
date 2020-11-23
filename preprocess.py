@@ -15,7 +15,7 @@ import shutil
 import pydicom  # for reading dicom files
 import math as mt
 
-import read_dicom
+import Read_dicom
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 cv2.destroyAllWindows()
@@ -187,14 +187,21 @@ def prepare_data(input_folder, train_fold, nx, ny):
 
         n_file = n_file + len(os.listdir(paz_path))
 
-    print('train images: %d' % n_file)
+    logging.info('train images: %d' % n_file)
 
     train_shape = (n_file, nx, ny)
+    
 
     hdf5_file.create_dataset("images_train", train_shape, np.float32)
+    hdf5_file.create_dataset("path", (n_file,), dtype=h5py.special_dtype(vlen=str))
+    hdf5_file.create_dataset("angle", (n_file,), np.float32)
+    hdf5_file.create_dataset("transY", (n_file,), np.float32)
+    hdf5_file.create_dataset("transX", (n_file,), np.float32)
+    hdf5_file.create_dataset("scale", (n_file,2), np.float32)
 
     #conto tot file png
     tot_file = []
+    nn = 0
     for paz in sorted(os.listdir(png_path)):
         paz_path = os.path.join(png_path, paz)
         tot_file.append(len(os.listdir(paz_path)))
@@ -202,8 +209,8 @@ def prepare_data(input_folder, train_fold, nx, ny):
     #pre-process file
     for paz, i in zip(sorted(os.listdir(png8_path)), range(len(os.listdir(png8_path)))):
 
-        print('--------------------------------------------------------------')
-        print(i)
+        logging.info('--------------------------------------------------------------')
+        logging.info(i)
         logging.info(train_fold)
         logging.info('Processing Paz: %s' % paz)
         train_addrs = []
@@ -226,12 +233,12 @@ def prepare_data(input_folder, train_fold, nx, ny):
         translY = []
 
         for phase in range(30):
-            n_frame = len(range(phase, tot_file[i], 30))-2
+            n_frame = len(range(phase, tot_file[i], 30))
             var = int(n_frame / 2)
-            frame = phase + (30 * (var + 1))-2
+            frame = (phase+1) + (30 * (var-1))
             X = []
             Y = []
-            img = np.array(Image.open(all_addrs[frame])).astype("uint16")
+            img = np.array(Image.open(all_addrs[frame-1])).astype("uint16")
             img = cv2.normalize(img, dst=None, alpha=0, beta=256, norm_type=cv2.NORM_MINMAX)
             img = img.astype("uint8")
             rows, cols = img.shape[:2]
@@ -271,15 +278,22 @@ def prepare_data(input_folder, train_fold, nx, ny):
         logging.info('Saving Data...')
         for n in range(len(train_addrs)):
             file = train_addrs[n]
-            num_img = int(file.split('img')[1].split('-')[0]) - 1
+            num_img = int(file.split('img')[1].split('-')[0])
             phase = int(num_img % 30)
+            if phase == 0:
+                phase = 30
+            
+            #logging.info('file %s' % file)
+            #logging.info('num_img %d' % num_img)
+            #logging.info('phase %d' % phase)
 
             im = np.array(Image.open(file)).astype("float32")
             im2 = im.copy()
             #im2 = normalize_image2(im2)
-            im2 = rotate_image(im2, angles[phase])
+            im2 = rotate_image(im2, angles[phase-1])
+            
             '''y=colm, x=row'''
-            im2 = translate_image(im2, translY[phase], translX[phase])
+            im2 = translate_image(im2, translY[phase-1], translX[phase-1])
             slice_rescaled = transform.rescale(im2,
                                                scale_vector,
                                                order=1,
@@ -288,7 +302,15 @@ def prepare_data(input_folder, train_fold, nx, ny):
                                                anti_aliasing=True,
                                                mode='constant')
             slice_cropped = crop_or_pad_slice_to_size(slice_rescaled, nx, ny)
-            hdf5_file["images_train"][n, ...] = slice_cropped[None]
+            hdf5_file["images_train"][nn, ...] = slice_cropped[None]
+            hdf5_file["path"][nn, ...] = file
+            hdf5_file["angle"][nn, ...] = angles[phase-1]
+            hdf5_file["transY"][nn, ...] = translY[phase-1]
+            hdf5_file["transX"][nn, ...] = translX[phase-1]
+            hdf5_file["scale"][nn, ...] = np.float32(scale_vector)
+            
+            nn = nn + 1
+            
 
     hdf5_file.close()
 
@@ -308,7 +330,7 @@ def load_data(input_folder,
     logging.info('................................................')
 
     if flag_dicom:
-        read_dicom.load_data(input_folder)
+        Read_dicom.load_data(input_folder)
 
     pngA = os.path.join(input_folder, 'trainA', 'png_8')
     pngB = os.path.join(input_folder, 'trainB', 'png_8')
@@ -343,9 +365,9 @@ def load_data(input_folder,
 
 if __name__ == '__main__':
     # Paths settings
-    input_folder = 'F:/data'
-    train_fold = 'trainB'
-    d = load_data(input_folder, train_fold, force_overwrite=False, flag_dicom=False, nx=200, ny=200)
+    input_folder = 'F:/prova'
+    train_fold = 'trainA'
+    d = load_data(input_folder, train_fold, force_overwrite=True, flag_dicom=False, nx=200, ny=200)
     #force_overwrite = sovrascrive file
     #flag_dicom = legge file dicom se non ancora letto
     #nx, ny = dimensione img in uscita
