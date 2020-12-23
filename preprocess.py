@@ -1,9 +1,10 @@
 """
-Created on Tue Jul 14 09:13:34 2020
+Created on Wed Dec  9 17:48:23 2020
 
 @author: Marco Penso
 """
 
+#ruota, trasla, crop selezionato
 import os
 import numpy as np
 import logging
@@ -151,7 +152,7 @@ def prepare_data(input_folder, train_fold, nx, ny):
     makefolder(proc_path)
 
     data_file_path = os.path.join(proc_path, 'train.hdf5')
-    hdf5_file = h5py.File(data_file_path, "w")
+    hdf5_file = h5py.File(data_file_path, "w")  #r+ per modificare
 
     Pixel_sizeXa = []
     Pixel_sizeYa = []
@@ -191,13 +192,13 @@ def prepare_data(input_folder, train_fold, nx, ny):
 
     train_shape = (n_file, nx, ny)
     
-
     hdf5_file.create_dataset("images_train", train_shape, np.float32)
     hdf5_file.create_dataset("path", (n_file,), dtype=h5py.special_dtype(vlen=str))
     hdf5_file.create_dataset("angle", (n_file,), np.float32)
     hdf5_file.create_dataset("transY", (n_file,), np.float32)
     hdf5_file.create_dataset("transX", (n_file,), np.float32)
     hdf5_file.create_dataset("scale", (n_file,2), np.float32)
+    hdf5_file.create_dataset("crop", (n_file,4), np.int)
 
     #conto tot file png
     tot_file = []
@@ -215,11 +216,12 @@ def prepare_data(input_folder, train_fold, nx, ny):
         logging.info('Processing Paz: %s' % paz)
         train_addrs = []
         all_addrs = []
+        flag = True
         if train_fold == 'trainA':
             scale_vector = [Pixel_sizeXa[i] / target_resolutionX, Pixel_sizeYa[i] / target_resolutionY]
         elif train_fold == 'trainB':
             scale_vector = [Pixel_sizeXb[i] / target_resolutionX, Pixel_sizeYb[i] / target_resolutionY]
-        print('scale_vector: %s' % scale_vector)
+        logging.info('scale_vector: %s' % scale_vector)
 
         for file in sorted(os.listdir(os.path.join(png8_path, paz))):
             addr = os.path.join(png_path, paz, file)
@@ -231,16 +233,26 @@ def prepare_data(input_folder, train_fold, nx, ny):
         angles = []
         translX = []
         translY = []
-
-        for phase in range(30):
-            n_frame = len(range(phase, tot_file[i], 30))
-            var = int(n_frame / 2)
-            frame = (phase+1) + (30 * (var-1))
+        r = []
+        
+        num_img_first = int(train_addrs[0].split('img')[1].split('-')[0])
+        num_img_last = int(train_addrs[-1].split('img')[1].split('-')[0])
+        if (num_img_first % 30) == 0:
+            var_init = int(num_img_first/30)
+        else:
+            var_init = int(num_img_first/30)+1
+        if (num_img_last % 30) == 0:
+            var_final = int(num_img_last/30)
+        else:
+            var_final = int(num_img_last/30)+1
+        
+        for frame in range( (25+(30*(var_init-1))), 25+(30*var_final), 30):        
             X = []
             Y = []
             img = np.array(Image.open(all_addrs[frame-1])).astype("uint16")
-            img = cv2.normalize(img, dst=None, alpha=0, beta=256, norm_type=cv2.NORM_MINMAX)
+            img = cv2.normalize(img, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
             img = img.astype("uint8")
+            img2 = img.copy()
             rows, cols = img.shape[:2]
             for ii in range(2):
                 cv2.imshow("image", img)
@@ -250,6 +262,7 @@ def prepare_data(input_folder, train_fold, nx, ny):
             '''rotate image'''
             A = [int(round(X[0])), int(round(Y[0]))]
             B = [int(round(X[1])), int(round(Y[1]))]
+            
             ''' find point2 (point with larger x) '''
             if A[0] > B[0]:
                 P2 = A
@@ -262,52 +275,126 @@ def prepare_data(input_folder, train_fold, nx, ny):
                 w = +1
             else:
                 w = -1
-            angles.append(w * mt.atan(abs(P2[1] - P1[1]) / (P2[0] - P1[0] + 0.0000000000001)) * 180 / 3.141592653589793)
+            rot = (w * mt.atan(abs(P2[1] - P1[1]) / (P2[0] - P1[0] + 0.0000000000001)) * 180 / 3.141592653589793)
+            angles.append(rot)
             '''translate image'''
             crRows = int(abs((A[0] + B[0]) / 2))
             crCols = int(abs((A[1] + B[1]) / 2))
-            if crRows > int(rows / 2):
-                translX.append(int(rows / 2) - crRows)
+            
+            deltaX = (int(rows / 2) - crRows)
+            deltaY = (int(cols / 2) - crCols)
+            translX.append(deltaX)
+            translY.append(deltaY)
+            if flag:
+                '''crop'''
+                X = []
+                Y = []
+                img2 = translate_image(img2, deltaY, deltaX)
+                img2 = rotate_image(img2, rot)
+                img2 = transform.rescale(img2,
+                                         scale_vector,
+                                         order=1,
+                                         preserve_range=True,
+                                         multichannel=False,
+                                         anti_aliasing=True,
+                                         mode='constant')
+                img2 = cv2.normalize(img2, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+                img2 = img2.astype("uint8")
+                crop = cv2.selectROI(img2, showCrosshair = False)
+                r.append(crop)
+                print('crop size, y: %s, x: %s' % (crop[2], crop[3]))
+                cv2.destroyAllWindows()
+                flag = False
             else:
-                translX.append(int(rows / 2) - crRows)
-            if crCols > int(cols / 2):
-                translY.append(int(cols / 2) - crCols)
-            else:
-                translY.append(int(cols / 2) - crCols)
-
+                r.append(crop)
+                print('crop size, y: %s, x: %s' % (crop[2], crop[3]))
+                      
         logging.info('Saving Data...')
+        
+        if os.path.exists(os.path.join(train_path,'rotate_transl',paz)):
+            deletefolder(os.path.join(train_path,'rotate_transl',paz))
+        makefolder(os.path.join(train_path,'rotate_transl',paz))
+        
+        if os.path.exists(os.path.join(train_path,'crop',paz)):
+            deletefolder(os.path.join(train_path,'crop',paz))
+        makefolder(os.path.join(train_path,'crop',paz))
+        
         for n in range(len(train_addrs)):
             file = train_addrs[n]
             num_img = int(file.split('img')[1].split('-')[0])
-            phase = int(num_img % 30)
-            if phase == 0:
-                phase = 30
             
-            #logging.info('file %s' % file)
-            #logging.info('num_img %d' % num_img)
-            #logging.info('phase %d' % phase)
-
-            im = np.array(Image.open(file)).astype("float32")
+            for i in range(var_init, var_final+1):
+                if ((i-1)*30+1) <= num_img <= ((i-1)*30+30):
+                    ind = i-var_init
+            
+            im = np.array(Image.open(file)).astype("uint16")
             im2 = im.copy()
             #im2 = normalize_image2(im2)
-            im2 = rotate_image(im2, angles[phase-1])
-            
             '''y=colm, x=row'''
-            im2 = translate_image(im2, translY[phase-1], translX[phase-1])
+            im2 = translate_image(im2, translY[ind], translX[ind])
+            # attenzione, rotazione avviene al centro dell'immagine
+            im2 = rotate_image(im2, angles[ind])
             slice_rescaled = transform.rescale(im2,
                                                scale_vector,
                                                order=1,
                                                preserve_range=True,
                                                multichannel=False,
                                                anti_aliasing=True,
-                                               mode='constant')
-            slice_cropped = crop_or_pad_slice_to_size(slice_rescaled, nx, ny)
-            hdf5_file["images_train"][nn, ...] = slice_cropped[None]
-            hdf5_file["path"][nn, ...] = file
-            hdf5_file["angle"][nn, ...] = angles[phase-1]
-            hdf5_file["transY"][nn, ...] = translY[phase-1]
-            hdf5_file["transX"][nn, ...] = translX[phase-1]
+                                               mode='constant')       
+            #slice_cropped = crop_or_pad_slice_to_size(slice_rescaled, nx, ny)
+            slice_cropped = slice_rescaled[int(r[ind][1]):int(r[ind][1]+r[ind][3]), int(r[ind][0]):int(r[ind][0]+r[ind][2])]
+            
+            #pad dimX=dimY
+            x,y = slice_cropped.shape 
+            if x < y:
+                dx = (y-x)//2
+                slice_pad = np.append(np.zeros((abs(dx),y)), slice_cropped, axis=0)
+                slice_pad = np.append(slice_pad, np.zeros((abs(dx),y)), axis=0)
+                x,y = slice_pad.shape
+                if x < y:
+                    slice_pad = np.append(slice_pad, np.zeros((1,y)), axis=0)
+            elif y < x:
+                dy = (x-y)//2
+                slice_pad = np.append(np.zeros((x,abs(dy))), slice_cropped, axis=1)
+                slice_pad = np.append(slice_pad, np.zeros((x,abs(dy))), axis=1)
+                x,y = slice_pad.shape
+                if y < x:
+                    slice_pad = np.append(slice_pad, np.zeros((x,1)), axis=1)
+            else: 
+                slice_pad = slice_cropped
+            
+            #pad if dim < nx,ny or resize if dim > nx,ny
+            if max(slice_pad.shape) < nx:
+                dx = (nx - max(slice_pad.shape)) // 2
+                slice_pad = np.pad(slice_pad, dx, mode='constant')
+                x,y = slice_pad.shape
+                if max(slice_pad.shape) < nx:
+                    slice_pad = np.append(slice_pad, np.zeros((1,y)), axis=0)
+                    x,y = slice_pad.shape
+                    slice_pad = np.append(slice_pad, np.zeros((x,1)), axis=1)  
+            elif max(slice_pad.shape) > nx:
+                slice_pad = cv2.resize(slice_pad, (nx, ny), interpolation=cv2.INTER_AREA)            
+            
+            
+            nam_spl = file.split(paz)
+            download_location = os.path.join(train_path,'rotate_transl',paz + nam_spl[1])
+            array_buffer = im2.tobytes()
+            img = Image.new("I", im2.shape)
+            img.frombytes(array_buffer, 'raw', "I;16")
+            img.save(download_location)
+            
+            im_cr = cv2.normalize(slice_pad, dst=None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+            im_cr = im_cr.astype("uint8")
+            crop_location = os.path.join(train_path,'crop',paz + nam_spl[1])
+            cv2.imwrite(crop_location, im_cr)
+            
+            hdf5_file["images_train"][nn, ...] = slice_pad[None]
+            hdf5_file["path"][nn, ...] = download_location
+            hdf5_file["angle"][nn, ...] = angles[ind]
+            hdf5_file["transY"][nn, ...] = translY[ind]
+            hdf5_file["transX"][nn, ...] = translX[ind]
             hdf5_file["scale"][nn, ...] = np.float32(scale_vector)
+            hdf5_file["crop"][nn, ...] = r[ind]
             
             nn = nn + 1
             
@@ -328,7 +415,10 @@ def load_data(input_folder,
     logging.info('input folder:')
     logging.info(input_folder)
     logging.info('................................................')
-
+    
+    if nx != ny:
+        logging.warning('nx is different than ny')
+    
     if flag_dicom:
         Read_dicom.load_data(input_folder)
 
@@ -365,7 +455,7 @@ def load_data(input_folder,
 
 if __name__ == '__main__':
     # Paths settings
-    input_folder = 'F:/prova'
+    input_folder = 'F:\data'
     train_fold = 'trainA'
     d = load_data(input_folder, train_fold, force_overwrite=True, flag_dicom=False, nx=200, ny=200)
     #force_overwrite = sovrascrive file
