@@ -1,16 +1,10 @@
 import os
 import numpy as np
 import logging
-import h5py
-from skimage import transform
-from skimage import util
-from skimage import measure
 import cv2
 from PIL import Image
 import shutil
 import pydicom # for reading dicom files
-import pandas as pd # for some simple data analysis (right now, just to load in the labels data and quickly reference it)
-import imgaug
 
 '''
 converto file .dicom in immagini .png
@@ -67,36 +61,22 @@ def prepare_data(input_folder, uint_8=False):
         makefolder(png8A_path)
         makefolder(png8B_path)
         
-    
-    for pazA, pazB in zip(sorted(os.listdir(dcmA_path)), sorted(os.listdir(dcmB_path))):
-        
+    print('------- Fold A -------')
+    for pazA in sorted(os.listdir(dcmA_path)):    
         pazA_path = os.path.join(dcmA_path, pazA)
-        pazB_path = os.path.join(dcmB_path, pazB)
 
-        for seriesA, seriesB in zip(os.listdir(pazA_path), os.listdir(pazB_path)):
-
+        for seriesA in os.listdir(pazA_path):
             download_locationA = os.path.join(pngA_path, pazA)
             makefolder(download_locationA)
-            download_locationB = os.path.join(pngB_path, pazB)
-            makefolder(download_locationB)
             
-            if uint_8:
-                
+            if uint_8:      
                 download_png8A = os.path.join(png8A_path, pazA)
-                makefolder(download_png8A)
-                download_png8B = os.path.join(png8B_path, pazB)
-                makefolder(download_png8B)
+                makefolder(download_png8A)        
             
             foldA = os.path.join(pazA_path, seriesA)
-            foldB = os.path.join(pazB_path, seriesB)
-
             logging.info('FoldA Paz: %s' % pazA)
-            logging.info('Number of file: %d' % len(os.listdir(foldA)))
-            logging.info('FoldB Paz: %s' % pazB)
-            logging.info('Number of file: %d' % len(os.listdir(foldB)))
-                    
-            for file in sorted(os.listdir(foldA)):
-                
+            logging.info('Number of file: %d' % len(os.listdir(foldA)))                    
+            for file in sorted(os.listdir(foldA)):       
                 fn = file.split('.dcm')
                 dcmPath = os.path.join(foldA, file)
                 data_row_img = pydicom.dcmread(dcmPath)
@@ -110,8 +90,22 @@ def prepare_data(input_folder, uint_8=False):
                     image = cv2.convertScaleAbs(image, alpha=(255.0/maxx))
                     cv2.imwrite(os.path.join(download_png8A, fn[0] + '.png'), image)
                     
-            for file in sorted(os.listdir(foldB)):
+    print('------- Fold B -------')
+    for pazB in sorted(os.listdir(dcmB_path)):  
+        pazB_path = os.path.join(dcmB_path, pazB)
+
+        for seriesB in os.listdir(pazB_path):
+            download_locationB = os.path.join(pngB_path, pazB)
+            makefolder(download_locationB)        
+            
+            if uint_8:
+                download_png8B = os.path.join(png8B_path, pazB)
+                makefolder(download_png8B)
                 
+            foldB = os.path.join(pazB_path, seriesB)   
+            logging.info('FoldB Paz: %s' % pazB)
+            logging.info('Number of file: %d' % len(os.listdir(foldB)))
+            for file in sorted(os.listdir(foldB)):             
                 fn = file.split('.dcm')
                 dcmPath = os.path.join(foldB, file)
                 data_row_img = pydicom.dcmread(dcmPath)
@@ -152,6 +146,6 @@ def load_data (input_folder,
 if __name__ == '__main__':
     
     # Paths settings
-    input_folder = 'F:\prova\data'
+    input_folder = 'F:\prova'
         
     d=load_data(input_folder)
